@@ -7,6 +7,55 @@ from langchain.pydantic_v1 import BaseModel, Field
 from langchain.agents import Tool
 from config import Config
 
+def get_wallet_balance(wallet_address, blockchain="ethereum"):
+    """Get the balance of a wallet address for a specified blockchain."""
+    # This example uses a generic API URL structure. Replace with actual API endpoints.
+    url = f"{Config.BLOCKCHAIN_API_URL}/{blockchain}/wallet/{wallet_address}/balance"
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        balance = response.json()["balance"]
+        return balance
+    except requests.exceptions.RequestException as e:
+        logging.error(f"Failed to retrieve wallet balance: {str(e)}")
+        raise
+
+def get_transaction_history(wallet_address, blockchain="ethereum"):
+    """Retrieve the transaction history for a wallet address."""
+    url = f"{Config.BLOCKCHAIN_API_URL}/{blockchain}/wallet/{wallet_address}/transactions"
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        transactions = response.json()["transactions"]
+        return transactions
+    except requests.exceptions.RequestException as e:
+        logging.error(f"Failed to retrieve transaction history: {str(e)}")
+        raise
+
+def get_gas_fees(blockchain="ethereum"):
+    """Get current gas fees for a specified blockchain."""
+    url = f"{Config.BLOCKCHAIN_API_URL}/{blockchain}/gas-fees"
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        fees = response.json()["fees"]
+        return fees
+    except requests.exceptions.RequestException as e:
+        logging.error(f"Failed to retrieve gas fees: {str(e)}")
+        raise
+
+def get_token_metadata(token_id, blockchain="ethereum"):
+    """Fetch metadata for a token/NFT."""
+    url = f"{Config.BLOCKCHAIN_API_URL}/{blockchain}/tokens/{token_id}/metadata"
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        metadata = response.json()
+        return metadata
+    except requests.exceptions.RequestException as e:
+        logging.error(f"Failed to retrieve token metadata: {str(e)}")
+        raise
+
 def get_most_similar(text, data):
     """Find the most similar item in a list of data to a given text."""
     vectorizer = TfidfVectorizer()
@@ -127,6 +176,68 @@ def get_protocol_tvl(protocol_name):
         logging.error(f"Failed to retrieve protocol TVL: {str(e)}")
         raise
 
+class GetWalletBalance(BaseModel):
+    """Input schema for the get_wallet_balance_tool."""
+    wallet_address: str = Field(description="Blockchain wallet address")
+    blockchain: str = Field(default="ethereum", description="Blockchain name")
+
+def get_wallet_balance_tool(wallet_address, blockchain="ethereum"):
+    """Get the balance of a blockchain wallet."""
+    try:
+        balance = get_wallet_balance(wallet_address, blockchain)
+        if balance is None:
+            return "Failed to retrieve wallet balance."
+        return f"Wallet balance for {wallet_address} on {blockchain}: {balance}"
+    except requests.exceptions.RequestException:
+        return "API error occurred while retrieving wallet balance."
+
+class GetGasFees(BaseModel):
+    """Input schema for the get_gas_fees_tool."""
+    blockchain: str = Field(default="ethereum", description="Blockchain name")
+
+def get_gas_fees_tool(blockchain="ethereum"):
+    """Get current gas fees for a specified blockchain."""
+    try:
+        fees = get_gas_fees(blockchain)
+        if fees is None:
+            return "Failed to retrieve gas fees."
+        return f"Current gas fees on {blockchain}: {fees}"
+    except requests.exceptions.RequestException:
+        return "API error occurred while retrieving gas fees."
+
+class GetTokenMetadata(BaseModel):
+    """Input schema for the get_token_metadata_tool."""
+    token_id: str = Field(description="Token or NFT ID")
+    blockchain: str = Field(default="ethereum", description="Name of the blockchain")
+
+def get_token_metadata_tool(token_id, blockchain="ethereum"):
+    """Fetch metadata for a token/NFT."""
+    try:
+        metadata = get_token_metadata(token_id, blockchain)
+        if metadata is None:
+            return "Failed to retrieve token metadata."
+        return f"Metadata for token {token_id} on {blockchain}: {metadata}"
+    except Exception as e:
+        logging.error(f"Failed to retrieve token metadata: {str(e)}")
+        return "API error occurred while retrieving token metadata."
+
+class GetTransactionHistory(BaseModel):
+    """Input schema for the get_transaction_history_tool."""
+    wallet_address: str = Field(description="Blockchain wallet address")
+    blockchain: str = Field(default="ethereum", description="Name of the blockchain")
+
+def get_transaction_history_tool(wallet_address, blockchain="ethereum"):
+    """Retrieve the transaction history for a wallet address."""
+    try:
+        transactions = get_transaction_history(wallet_address, blockchain)
+        if transactions is None or len(transactions) == 0:
+            return "No transactions found for this address."
+        return f"Transaction history for {wallet_address} on {blockchain}: {transactions}"
+    except Exception as e:
+        logging.error(f"Failed to retrieve transaction history: {str(e)}")
+        return "API error occurred while retrieving transaction history."
+
+
 class GetPrice(BaseModel):
     """Input schema for the get_coin_price_tool."""
     coin: str = Field(description="Name of the coin")
@@ -234,5 +345,34 @@ def get_tools():
             description="Get the market cap of a coin",
             args_schema=GetMarketCap,
             return_direct=True
-        )
+        ),
+        Tool(
+            name="get_wallet_balance",
+            func=get_wallet_balance_tool,
+            description="Get the balance of a blockchain wallet",
+            args_schema=GetWalletBalance,
+            return_direct=True
+        ),
+
+        Tool(
+            name="get_gas_fees",
+            func=get_gas_fees_tool,
+            description="Get current gas fees for a specified blockchain",
+            args_schema=GetGasFees,
+            return_direct=True
+        ),
+        Tool(
+            name="get_token_metadata",
+            func=get_token_metadata_tool,
+            description="Fetch metadata for a token/NFT",
+            args_schema=GetTokenMetadata,
+            return_direct=True
+        ),
+        Tool(
+            name="get_transaction_history",
+            func=get_transaction_history_tool,
+            description="Retrieve the transaction history for a wallet address",
+            args_schema=GetTransactionHistory,
+            return_direct=True
+        ),
     ]

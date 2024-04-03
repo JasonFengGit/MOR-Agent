@@ -13,6 +13,7 @@ class Config:
     # API endpoints
     COINGECKO_BASE_URL = "https://api.coingecko.com/api/v3"
     DEFILLAMA_BASE_URL = "https://api.llama.fi"
+    BLOCKCHAIN_API_URL = "https://mainnet.infura.io/v3/YOUR_INFURA_PROJECT_ID"
 
     # User-facing strings
     PRICE_SUCCESS_MESSAGE = "The price of {coin_name} is ${price:,}"
