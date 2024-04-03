@@ -1,8 +1,12 @@
 # Morpheus Data Agent
-This agent provides real-time pricing and other cryptoasset metrics by pulling data from CoinGecko and DefiLlama APIs.
+This agent provides real-time pricing and Blockchain native data by pulling data from CoinGecko, DefiLlama, and Infura APIs.
+> This Repo is built upon https://github.com/cliffordattractor/morpheus-data-agent
 
 It currently supports the following metrics:
-
+- balance of wallet (new) 
+- wallet tx history (new)
+- gas fees (new)
+- token metadata (new)
 - current price of coins
 - current price of NFT collections
 - market cap
