@@ -7,6 +7,49 @@ from langchain.pydantic_v1 import BaseModel, Field
 from langchain.agents import Tool
 from config import Config
 
+def get_fear_greed_index(limit=10, timestamp='1518048000'):
+    url = 'https://crypto-fear-greed-index2.p.rapidapi.com/index'
+    params = {
+        'limit': limit,
+        'timestamp': timestamp
+    }
+    headers = {
+        'X-RapidAPI-Key': 'd84ccc589dmsh6fc43d24045bc6bp134c4fjsn841dcb671292',
+        'X-RapidAPI-Host': 'crypto-fear-greed-index2.p.rapidapi.com'
+    }
+    try:
+        response = requests.get(url, headers=headers, params=params)
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        logging.error(f"API request failed: {str(e)}")
+        raise
+
+def get_crypto_global_market_data():
+    url = 'https://pro-api.coingecko.com/api/v3/global'
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        logging.error(f"API request failed: {str(e)}")
+        raise
+
+def get_potential_airdrops():
+    url = 'https://all-in-one-crypto-swiss-knife.p.rapidapi.com/airdrops/potential'
+    headers = {
+        'X-RapidAPI-Key': 'd84ccc589dmsh6fc43d24045bc6bp134c4fjsn841dcb671292',
+        'X-RapidAPI-Host': 'all-in-one-crypto-swiss-knife.p.rapidapi.com'
+    }
+    try:
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        logging.error(f"API request failed: {str(e)}")
+        raise
+
+
 def get_wallet_balance(wallet_address, blockchain="ethereum"):
     """Get the balance of a wallet address for a specified blockchain."""
     # This example uses a generic API URL structure. Replace with actual API endpoints.
@@ -175,6 +218,40 @@ def get_protocol_tvl(protocol_name):
     except requests.exceptions.RequestException as e:
         logging.error(f"Failed to retrieve protocol TVL: {str(e)}")
         raise
+
+class GetPotentialAirdrops(BaseModel):
+    """No input schema required for potential airdrops as it does not take any parameters."""
+
+class GetFearGreedIndex(BaseModel):
+    limit: int = Field(default=10, description="Number of results to limit")
+    timestamp: str = Field(default='1518048000', description="Timestamp for historical data")
+
+class GetGlobalMarketData(BaseModel):
+    """No input schema required for global market data as it does not take any parameters."""
+
+def get_potential_airdrops_tool():
+    """Retrieve potential airdrops information."""
+    try:
+        data = get_potential_airdrops()  # Assuming this function is already defined
+        return f"Potential airdrops data: {data}"
+    except Exception as e:
+        return f"Failed to retrieve potential airdrops: {str(e)}"
+
+def get_fear_greed_index_tool(limit=10, timestamp='1518048000'):
+    """Retrieve the crypto fear & greed index."""
+    try:
+        index = get_fear_greed_index(limit, timestamp)  # Assuming this function is already defined
+        return f"Crypto fear & greed index: {index}"
+    except Exception as e:
+        return f"Failed to retrieve fear & greed index: {str(e)}"
+
+def get_global_market_data_tool():
+    """Retrieve global cryptocurrency market data."""
+    try:
+        market_data = get_crypto_global_market_data()  # Assuming this function is already defined
+        return f"Global cryptocurrency market data: {market_data}"
+    except Exception as e:
+        return f"Failed to retrieve global cryptocurrency market data: {str(e)}"
 
 class GetWalletBalance(BaseModel):
     """Input schema for the get_wallet_balance_tool."""
@@ -375,4 +452,25 @@ def get_tools():
             args_schema=GetTransactionHistory,
             return_direct=True
         ),
+        Tool(
+            name="get_potential_airdrops",
+            func=get_potential_airdrops_tool,
+            description="Retrieve potential airdrops information",
+            args_schema=GetPotentialAirdrops,  # No input arguments
+            return_direct=True
+        ),
+        Tool(
+            name="get_fear_greed_index",
+            func=get_fear_greed_index_tool,
+            description="Retrieve the crypto fear & greed index",
+            args_schema=GetFearGreedIndex,
+            return_direct=True
+        ),
+        Tool(
+            name="get_global_market_data",
+            func=get_global_market_data_tool,
+            description="Retrieve global cryptocurrency market data",
+            args_schema=GetGlobalMarketData,  # No input arguments
+            return_direct=True
+        )
     ]
